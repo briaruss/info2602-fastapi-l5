@@ -1,22 +1,16 @@
 import uvicorn
-from fastapi import FastAPI, Request, status
-from app.routers import main_router, templates
-from starlette.middleware import Middleware
+from fastapi import FastAPI
+from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from starlette_flash import flash, get_messages_for_template
 
-SECRET_KEY = "ThisIsAnExampleOfWhatNotToUseAsTheSecretKeyIRL"
+app = FastAPI()
+app.add_middleware(SessionMiddleware, secret_key="secret")
+templates = Jinja2Templates(directory="templates")
+templates.env.globals["get_flashed_messages"] = get_messages_for_template
 
-app = FastAPI(middleware=[
-    Middleware(SessionMiddleware, secret_key=SECRET_KEY)
-])
+from app.routers import main_router
 app.include_router(main_router)
 
-@app.exception_handler(status.HTTP_401_UNAUTHORIZED)
-async def unauthorized_redirect_handler(request: Request, exc: Exception):
-    return templates.TemplateResponse(
-        request=request, 
-        name="401.html",
-    )
-
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", reload=True)
